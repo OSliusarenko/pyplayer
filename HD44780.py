@@ -6,12 +6,12 @@ from time import sleep
 class HD44780(object):
     """ Main class for LCD """
 
-    def __init__(self, pin_rs=26, pin_e=24, pins_db=None):
+    def __init__(self, pin_rs=12, pin_e=11, pins_db=None):
         """ Initializing LCD """
         self.pin_rs = pin_rs
         self.pin_e = pin_e
         if pins_db is None:
-            self.pins_db = [22, 18, 16, 12]
+            self.pins_db = [5, 7, 10, 3]
         else:
             self.pins_db = pins_db
 

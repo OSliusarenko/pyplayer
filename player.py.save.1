@@ -107,7 +107,7 @@ class Player(object):
         self.playmode = False
         self.mpc = MPDClient(use_unicode=True)
         self.mpc.connect("localhost", 6600)
-        self.mpc.update()
+        # self.mpc.update()
         self.dirs = Tree(start_dir)
         self.dirs.list_dir()
         self.offs = 0
@@ -120,18 +120,15 @@ class Player(object):
 
     def play(self):
         """ Play the files """
-        try:
-            self.mpc.clear()
-            self.mpc.add(
-                self.dirs.goto_dir(self.offs, False)[len(self.dirs.home_dir)+1:]
-                )
-            self.mpc.play()
-            self.playmode = True
-            place_text(self.dirs.subdirectories_with_music[self.offs], 0)
-            self.show_track()
-            signal.setitimer(signal.ITIMER_REAL, 5, 5)
-        except:
-            pass
+        self.mpc.clear()
+        self.mpc.add(
+            self.dirs.goto_dir(self.offs, False)[len(self.dirs.home_dir)+1:]
+            )
+        self.mpc.play()
+        self.playmode = True
+        place_text(self.dirs.subdirectories_with_music[self.offs], 0)
+        self.show_track()
+        signal.setitimer(signal.ITIMER_REAL, 5, 5)
 
     def stop(self):
         """ Stop playing """

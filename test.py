@@ -10,7 +10,6 @@ import RPi.GPIO as GPIO
 from mpd import MPDClient
 import sys
 from HD44780 import HD44780
-from keyboard import Keyboard
 
 
 locale.setlocale(locale.LC_ALL, '')
@@ -209,7 +208,6 @@ def place_text(strings, row):
 #####################################
 
 LCD = HD44780()
-BUTTONS = Keyboard()
 
 place_text('Player v' + VERSION, 0)
 place_text('-= loading =-', 1)
@@ -229,38 +227,3 @@ while 1:
     if not PLAYER.playmode:
         display(PLAYER.dirs.subdirectories_with_music, PLAYER.offs)
     signal.pause()
-    while len(BUTTONS.queue) > 1:
-        k = BUTTONS.queue.pop()
-        if not PLAYER.playmode:  # choosemode
-            if k == 'enter':
-                PLAYER.enter_dir()
-            if k == 'eject':
-                PLAYER.offs = 0
-                PLAYER.enter_dir()
-            if k == 'play' and PLAYER.dirs.not_root_dir_chosen(PLAYER.offs):
-                PLAYER.play()
-            if k == 'back' and PLAYER.offs > 0:
-                PLAYER.offs -= 1
-            if k == 'fwd' and PLAYER.offs < \
-                    len(PLAYER.dirs.subdirectories_with_music)-1:
-                PLAYER.offs += 1
-        else:  # playmode
-            if k == 'eject':
-                PLAYER.stop()
-            if k == 'back':
-                PLAYER.prev()
-            if k == 'fwd':
-                PLAYER.next()
-            if k == 'vol+':
-                PLAYER.inc_vol()
-            if k == 'vol-':
-                PLAYER.dec_vol()
-
-            if k == 'play':
-                PLAYER.pause()
-        if k == 'pwr':
-            place_text('Player v' + VERSION, 0)
-            place_text('-= shutdown =-', 1)
-            PLAYER.exit()
-            GPIO.cleanup()
-            pwrdn()
