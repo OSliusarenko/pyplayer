@@ -4,7 +4,6 @@ import os
 import signal
 import locale
 import subprocess
-import RPi.GPIO as GPIO
 import os
 import sys
 import math
@@ -23,7 +22,8 @@ def italarm_signal_handler(signal, stack):
 
 def interrupt_signal_handler(signal, frame):
     print 'Exitting...\n'
-    GPIO.cleanup()
+    lcd.cln()
+    buttons.cln()
     sys.exit()
 
 
@@ -142,7 +142,6 @@ class tplayer:
 
     def show_track(self):
         sout = subprocess.check_output(['mpc', 'status']).splitlines()[0]
-        print sout
         sout = sout.split('-')[-1]
         sout = sout.split('/')[-1]
         if sout[0] == ' ':
@@ -226,5 +225,6 @@ while 1:
         if k == 'pwr':
             place_text('Player v 1.0', 0)
             place_text('-= shutdown =-', 1)
-            GPIO.cleanup()
+            lcd.cln()
+            buttons.cln()
             pwrdn()

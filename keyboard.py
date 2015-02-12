@@ -1,7 +1,7 @@
 #####
 from time import sleep
 from time import time
-import RPi.GPIO as GPIO
+import wiringpi2 as wiringpi
 import signal
 import os
 
@@ -20,55 +20,63 @@ class keyboard:
         self.rot_b = rot_b
         self.vol_a = vol_a
         self.vol_b = vol_b
+        
+        # setting pins to input mode
 
-        GPIO.setmode(GPIO.BOARD)
-        GPIO.setup(self.play_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        GPIO.setup(self.eject_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        GPIO.setup(self.pwr_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        GPIO.setup(self.choose_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        GPIO.setup(self.rot_a, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        GPIO.setup(self.rot_b, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        GPIO.setup(self.vol_a, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        GPIO.setup(self.vol_b, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        wiringpi.wiringPiSetupPhys()
+        wiringpi.pinMode(self.play_pin, 0)
+        wiringpi.pinMode(self.eject_pin, 0)
+        wiringpi.pinMode(self.pwr_pin, 0)
+        wiringpi.pinMode(self.choose_pin, 0)
+        wiringpi.pinMode(self.rot_a, 0)
+        wiringpi.pinMode(self.rot_b, 0)
+        wiringpi.pinMode(self.vol_a, 0)
+        wiringpi.pinMode(self.vol_b, 0)
+        
+        # pulling them up
+        
+        wiringpi.pullUpDnControl(self.play_pin, 2)
+        wiringpi.pullUpDnControl(self.eject_pin, 2)
+        wiringpi.pullUpDnControl(self.pwr_pin, 2)
+        wiringpi.pullUpDnControl(self.choose_pin, 2)
+        wiringpi.pullUpDnControl(self.rot_a, 2)
+        wiringpi.pullUpDnControl(self.rot_b, 2)
+        wiringpi.pullUpDnControl(self.vol_a, 2)
+        wiringpi.pullUpDnControl(self.vol_b, 2)
 
-        GPIO.add_event_detect(self.play_pin, GPIO.FALLING,
-                              callback=self.play_callback, bouncetime=200)
-        GPIO.add_event_detect(self.eject_pin, GPIO.FALLING,
-                              callback=self.eject_callback, bouncetime=200)
-        GPIO.add_event_detect(self.pwr_pin, GPIO.FALLING,
-                              callback=self.pwrbtn_callback, bouncetime=200)
-        GPIO.add_event_detect(self.choose_pin, GPIO.FALLING,
-                              callback=self.choice_callback, bouncetime=200)
-        GPIO.add_event_detect(self.rot_a, GPIO.FALLING,
-                              callback=self.rot_callback, bouncetime=5)
-        GPIO.add_event_detect(self.vol_a, GPIO.FALLING,
-                              callback=self.volp_callback, bouncetime=5)
-        GPIO.add_event_detect(self.vol_b, GPIO.FALLING,
-                              callback=self.volm_callback, bouncetime=5)
-
+        
+#        wiringpi.wiringPiISR(self.play_pin, 1, self.play_callback)
+#        wiringpi.wiringPiISR(self.eject_pin, 1, self.eject_callback)
+#        wiringpi.wiringPiISR(self.pwr_pin, 1, self.pwrbtn_callback)
+#        wiringpi.wiringPiISR(self.choose_pin, 1, self.choice_callback)
+#        wiringpi.wiringPiISR(self.rot_a, 1, self.rot_callback)
+#        wiringpi.wiringPiISR(self.vol_a, 1, self.volp_callback)
+#        wiringpi.wiringPiISR(self.vol_b, 1, self.volm_callback)
+                              
         self.queue = ['']
 
         self.rot = 0
         self.oldrot = self.rot
 
-    def play_callback(self, channel):
+    def play_callback(self):
         self.queue.append('play')
         os.kill(os.getpid(), signal.SIGUSR1)
 
-    def eject_callback(self, channel):
+    def eject_callback(self):
         self.queue.append('eject')
         os.kill(os.getpid(), signal.SIGUSR1)
 
-    def pwrbtn_callback(self, channel):
+    def pwrbtn_callback(self):
         self.queue.append('pwr')
         os.kill(os.getpid(), signal.SIGUSR1)
 
-    def choice_callback(self, channel):
+    def choice_callback(self):
         self.queue.append('enter')
         os.kill(os.getpid(), signal.SIGUSR1)
 
-    def rot_callback(self, channel):
-        if GPIO.input(self.rot_a) == GPIO.input(self.rot_b):
+    def rot_callback(self):
+        if wiringpi.digitalRead(self.rot_a) == \
+                            wiringpi.digitalRead(self.rot_b):
             self.rot += 1
         else:
             self.rot -= 1
@@ -83,10 +91,20 @@ class keyboard:
                 self.queue.append('back')
             os.kill(os.getpid(), signal.SIGUSR1)
 
-    def volp_callback(self, channel):
+    def volp_callback(self):
         self.queue.append('vol+')
         os.kill(os.getpid(), signal.SIGUSR1)
 
-    def volm_callback(self, channel):
+    def volm_callback(self):
         self.queue.append('vol-')
         os.kill(os.getpid(), signal.SIGUSR1)
+        
+    def cln(self):
+        wiringpi.pullUpDnControl(self.play_pin, 0)
+        wiringpi.pullUpDnControl(self.eject_pin, 0)
+        wiringpi.pullUpDnControl(self.pwr_pin, 0)
+        wiringpi.pullUpDnControl(self.choose_pin, 0)
+        wiringpi.pullUpDnControl(self.rot_a, 0)
+        wiringpi.pullUpDnControl(self.rot_b, 0)
+        wiringpi.pullUpDnControl(self.vol_a, 0)
+        wiringpi.pullUpDnControl(self.vol_b, 0)

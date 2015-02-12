@@ -1,4 +1,4 @@
-import RPi.GPIO as GPIO
+import wiringpi2 as wiringpi
 from time import sleep
 
 
@@ -10,11 +10,11 @@ class HD44780:
         self.pin_e = pin_e
         self.pins_db = pins_db
 
-        GPIO.setmode(GPIO.BOARD)
-        GPIO.setup(self.pin_e, GPIO.OUT)
-        GPIO.setup(self.pin_rs, GPIO.OUT)
+        wiringpi.wiringPiSetupPhys()
+        wiringpi.pinMode(self.pin_e, 1)
+        wiringpi.pinMode(self.pin_rs, 1)
         for pin in self.pins_db:
-            GPIO.setup(pin, GPIO.OUT)
+            wiringpi.pinMode(pin, 1)
 
         self.clear()
 
@@ -34,27 +34,27 @@ class HD44780:
         sleep(0.001)
         bits = bin(bits)[2:].zfill(8)
 
-        GPIO.output(self.pin_rs, char_mode)
+        wiringpi.digitalWrite(self.pin_rs, char_mode)
 
         for pin in self.pins_db:
-            GPIO.output(pin, False)
+            wiringpi.digitalWrite(pin, False)
 
         for i in range(4):
             if bits[i] == "1":
-                GPIO.output(self.pins_db[::-1][i], True)
+                wiringpi.digitalWrite(self.pins_db[::-1][i], True)
 
-        GPIO.output(self.pin_e, True)
-        GPIO.output(self.pin_e, False)
+        wiringpi.digitalWrite(self.pin_e, True)
+        wiringpi.digitalWrite(self.pin_e, False)
 
         for pin in self.pins_db:
-            GPIO.output(pin, False)
+            wiringpi.digitalWrite(pin, False)
 
         for i in range(4, 8):
             if bits[i] == "1":
-                GPIO.output(self.pins_db[::-1][i-4], True)
+                wiringpi.digitalWrite(self.pins_db[::-1][i-4], True)
 
-        GPIO.output(self.pin_e, True)
-        GPIO.output(self.pin_e, False)
+        wiringpi.digitalWrite(self.pin_e, True)
+        wiringpi.digitalWrite(self.pin_e, False)
 
     def message(self, text):
         """ Send string to LCD. Newline wraps to second line"""
@@ -64,3 +64,12 @@ class HD44780:
                 self.cmd(0xC0)  # next line
             else:
                 self.cmd(ord(char), True)
+    
+    def cln(self):
+        wiringpi.digitalWrite(self.pin_e, 0)
+        wiringpi.pinMode(self.pin_e, 0)
+        wiringpi.digitalWrite(self.pin_rs, 0)
+        wiringpi.pinMode(self.pin_rs, 0)
+        for pin in self.pins_db:
+            wiringpi.digitalWrite(pin, 0)
+            wiringpi.pinMode(pin, 0)        
