@@ -49,7 +49,7 @@ class ttree:
             files.sort()
             for filename in files:
                 if filename.endswith(('.ogg', '.mp3',
-                                      '.flac', '.m4a', '.wma', '.wav')):
+                                      '.flac', '.m4a', '.wma')):
                     music_files.append(filename)
                     directory_has_music = True
             if directory_has_music:
