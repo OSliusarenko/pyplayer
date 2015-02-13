@@ -1,3 +1,4 @@
+""" Main script"""
 #!/usr/bin/python
 
 import os
@@ -7,39 +8,47 @@ import subprocess
 import RPi.GPIO as GPIO
 import sys
 from HD44780 import HD44780
-from keyboard import keyboard
+from keyboard import Keyboard
 
 
 locale.setlocale(locale.LC_ALL, '')
-code = locale.getpreferredencoding()
+#code = locale.getpreferredencoding()
 
 
-def italarm_signal_handler(signal, stack):
-    player.show_track()
+
+def italarm_signal_handler(ssignal, stack):
+    """ Shows the current playing track """
+    PLAYER.show_track()
 
 
-def interrupt_signal_handler(signal, frame):
+def interrupt_signal_handler(ssignal, frame):
+    """ Cleans out pins when ^C received"""
     print 'Exitting...\n'
     GPIO.cleanup()
     sys.exit()
 
 
-def usr1_signal_handler(signal, stack):
+def usr1_signal_handler(ssignal, stack):
+    """ Temporarily nothing """
     pass
 
 
 def pwrdn():
+    """ Shuts down the device when pwdn pressed """
     subprocess.call(['sudo', 'shutdown', '-h', 'now'])
 
 
-class ttree:
+class Tree(object):
+    """ Directories with music files """
 
     def __init__(self, start_dir):
+        """ Mainly finds files suitable for playing """
         self.tree = dict()
         self.home_dir = start_dir
         self.curr_dir = start_dir
+        self.subdirectories_with_music = []
 
-        for root, dirs, files in os.walk(self.home_dir, followlinks=True):
+        for root, _, files in os.walk(self.home_dir, followlinks=True):
             directory_has_music = False
             music_files = []
             files.sort()
@@ -52,7 +61,7 @@ class ttree:
                 self.tree[root] = music_files
 
     def list_dir(self):
-        self.subdirectories_with_music = []
+        """ Collects DB of directories with music files """
         for subdir in sorted(self.tree.keys()):
             if subdir.startswith(self.curr_dir) and \
                     len(subdir.split('/')) > len(self.curr_dir.split('/')):
@@ -65,6 +74,7 @@ class ttree:
             )))
 
     def goto_dir(self, num, change_directory=True):
+        """ Navigates to the specified directory """
         if self.subdirectories_with_music[num] != '..':
             try_dir = os.path.join(
                 self.curr_dir, self.subdirectories_with_music[num])
@@ -79,27 +89,32 @@ class ttree:
             return try_dir
 
     def not_root_dir_chosen(self, offs):
+        """ Checks whether play pressed not in for root dir """
         if self.subdirectories_with_music[offs] != '..':
             return True
         else:
             return False
 
 
-class tplayer:
+class Player(object):
+    """ Main class """
 
     def __init__(self, start_dir):
+        """ Init player """
         self.playmode = False
         # subprocess.check_output(['mpc', 'update'])
-        self.dirs = ttree(start_dir)
+        self.dirs = Tree(start_dir)
         self.dirs.list_dir()
         self.offs = 0
 
     def enter_dir(self):
+        """ Goto specified directory """
         self.dirs.goto_dir(self.offs)
         self.dirs.list_dir()
         self.offs = 0
 
     def play(self):
+        """ Play the files """
         subprocess.call(['mpc', 'clear'])
         subprocess.call([
             'mpc', 'add',
@@ -112,33 +127,45 @@ class tplayer:
         signal.setitimer(signal.ITIMER_REAL, 5, 5)
 
     def stop(self):
+        """ Stop playing """
         self.playmode = False
         signal.setitimer(signal.ITIMER_REAL, 0, 0)
         subprocess.call(['mpc', 'stop'])
 
     def prev(self):
+        """ Previous track """
         subprocess.call(['mpc', 'prev'])
         self.show_track()
 
     def next(self):
+        """ Next track """
         subprocess.call(['mpc', 'next'])
         self.show_track()
 
-    def inc_vol(self):
+    @staticmethod
+    def inc_vol():
+        """ Increase volume """
         subprocess.call(['amixer', '-c', '0', 'set', 'PCM', '1%+'])
 
-    def dec_vol(self):
+    @staticmethod
+    def dec_vol():
+        """ Decrease volume """
         subprocess.call(['amixer', '-c', '0', 'set', 'PCM', '1%-'])
 
-    def seek(self, secs):
+    @staticmethod
+    def seek(secs):
+        """ Seek file """
         subprocess.call(['mpc', 'seek', secs])
 
-    def pause(self):
+    @staticmethod
+    def pause():
+        """ Toggle state: play/pause """
         subprocess.call(['mpc', 'toggle'])
 
-    def show_track(self):
+    @staticmethod
+    def show_track():
+        """ Show playing track on LCD """
         sout = subprocess.check_output(['mpc', 'status']).splitlines()[0]
-        print sout
         sout = sout.split('-')[-1]
         sout = sout.split('/')[-1]
         if sout[0] == ' ':
@@ -147,7 +174,8 @@ class tplayer:
 
 
 def display(strings, offset=0):
-    if not player.playmode:
+    """ Display info on LCD regarding playmode """
+    if not PLAYER.playmode:
         for i, item in enumerate(strings[offset:]):
             text = item.decode('utf-8', 'ignore')[:15]\
                     .encode('utf-8', 'ignore')
@@ -162,21 +190,22 @@ def display(strings, offset=0):
 
 
 def place_text(strings, row):
-    s = strings+' '*(16-len(strings))
+    """ Wrapper for LCD """
+    s_tmp = strings+' '*(16-len(strings))
     if row == 1:
-        s = '\n' + s
-    lcd.message(s)
+        s_tmp = '\n' + s_tmp
+    LCD.message(s_tmp)
 
 #####################################
 
-lcd = HD44780()
-buttons = keyboard()
+LCD = HD44780()
+BUTTONS = Keyboard()
 
 place_text('Player v 1.0', 0)
 place_text('-= loading =-', 1)
 
 
-player = tplayer('/mnt/hd1/pi/Music')
+PLAYER = Player('/mnt/hd1/pi/Music')
 
 signal.signal(signal.SIGALRM, italarm_signal_handler)
 signal.signal(signal.SIGINT, interrupt_signal_handler)
@@ -187,38 +216,38 @@ signal.signal(signal.SIGUSR1, usr1_signal_handler)
 
 while 1:
 
-    if not player.playmode:
-        display(player.dirs.subdirectories_with_music, player.offs)
+    if not PLAYER.playmode:
+        display(PLAYER.dirs.subdirectories_with_music, PLAYER.offs)
     signal.pause()
-    while len(buttons.queue) > 1:
-        k = buttons.queue.pop()
-        if not player.playmode:  # choosemode
+    while len(BUTTONS.queue) > 1:
+        k = BUTTONS.queue.pop()
+        if not PLAYER.playmode:  # choosemode
             if k == 'enter':
-                player.enter_dir()
+                PLAYER.enter_dir()
             if k == 'eject':
-                player.offs = 0
-                player.enter_dir()
-            if k == 'play' and player.dirs.not_root_dir_chosen(player.offs):
-                player.play()
-            if k == 'back' and player.offs > 0:
-                player.offs -= 1
-            if k == 'fwd' and player.offs < \
-                    len(player.dirs.subdirectories_with_music)-1:
-                player.offs += 1
+                PLAYER.offs = 0
+                PLAYER.enter_dir()
+            if k == 'play' and PLAYER.dirs.not_root_dir_chosen(PLAYER.offs):
+                PLAYER.play()
+            if k == 'back' and PLAYER.offs > 0:
+                PLAYER.offs -= 1
+            if k == 'fwd' and PLAYER.offs < \
+                    len(PLAYER.dirs.subdirectories_with_music)-1:
+                PLAYER.offs += 1
         else:  # playmode
             if k == 'eject':
-                player.stop()
+                PLAYER.stop()
             if k == 'back':
-                player.prev()
+                PLAYER.prev()
             if k == 'fwd':
-                player.next()
+                PLAYER.next()
             if k == 'vol+':
-                player.inc_vol()
+                PLAYER.inc_vol()
             if k == 'vol-':
-                player.dec_vol()
+                PLAYER.dec_vol()
 
             if k == 'play':
-                player.pause()
+                PLAYER.pause()
         if k == 'pwr':
             place_text('Player v 1.0', 0)
             place_text('-= shutdown =-', 1)

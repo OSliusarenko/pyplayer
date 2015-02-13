@@ -1,14 +1,17 @@
-#####
+""" Module for treating buttons and rotary encoder """
 import RPi.GPIO as GPIO
 import signal
 import os
 
 
-class keyboard:
+class Keyboard(object):
+    """ Main class """
 
     def __init__(self, play_pin=3, eject_pin=5,
                  pwr_pin=7, choose_pin=11, rot_a=13,
                  rot_b=15, vol_a=21, vol_b=23):
+        """ Init pins """
+
         self.play_pin = play_pin
         self.eject_pin = eject_pin
         self.pwr_pin = pwr_pin
@@ -50,22 +53,27 @@ class keyboard:
         self.oldrot = self.rot
 
     def play_callback(self, channel):
+        """ ISR callback for play pressed """
         self.queue.append('play')
         os.kill(os.getpid(), signal.SIGUSR1)
 
     def eject_callback(self, channel):
+        """ ISR callback for eject pressed """
         self.queue.append('eject')
         os.kill(os.getpid(), signal.SIGUSR1)
 
     def pwrbtn_callback(self, channel):
+        """ ISR callback for prwbtn pressed """
         self.queue.append('pwr')
         os.kill(os.getpid(), signal.SIGUSR1)
 
     def choice_callback(self, channel):
+        """ ISR callback for enter pressed """
         self.queue.append('enter')
         os.kill(os.getpid(), signal.SIGUSR1)
 
     def rot_callback(self, channel):
+        """ ISR callback for rotary encoder """
         if GPIO.input(self.rot_a) == GPIO.input(self.rot_b):
             self.rot += 1
         else:
@@ -82,9 +90,11 @@ class keyboard:
             os.kill(os.getpid(), signal.SIGUSR1)
 
     def volp_callback(self, channel):
+        """ ISR callback for volume up """
         self.queue.append('vol+')
         os.kill(os.getpid(), signal.SIGUSR1)
 
     def volm_callback(self, channel):
+        """ ISR callback for volume down """
         self.queue.append('vol-')
         os.kill(os.getpid(), signal.SIGUSR1)
