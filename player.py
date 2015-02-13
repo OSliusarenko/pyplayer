@@ -1,19 +1,21 @@
-""" Main script"""
 #!/usr/bin/python
+
+""" Main script"""
 
 import os
 import signal
 import locale
 import subprocess
 import RPi.GPIO as GPIO
+from mpd import MPDClient
 import sys
 from HD44780 import HD44780
 from keyboard import Keyboard
 
 
 locale.setlocale(locale.LC_ALL, '')
-#code = locale.getpreferredencoding()
-
+# code = locale.getpreferredencoding()
+VERSION = '1.1'
 
 
 def italarm_signal_handler(ssignal, stack):
@@ -24,6 +26,7 @@ def italarm_signal_handler(ssignal, stack):
 def interrupt_signal_handler(ssignal, frame):
     """ Cleans out pins when ^C received"""
     print 'Exitting...\n'
+    PLAYER.exit()
     GPIO.cleanup()
     sys.exit()
 
@@ -102,7 +105,9 @@ class Player(object):
     def __init__(self, start_dir):
         """ Init player """
         self.playmode = False
-        # subprocess.check_output(['mpc', 'update'])
+        self.mpc = MPDClient(use_unicode=True)
+        self.mpc.connect("localhost", 6600)
+        # self.mpc.update()
         self.dirs = Tree(start_dir)
         self.dirs.list_dir()
         self.offs = 0
@@ -115,12 +120,11 @@ class Player(object):
 
     def play(self):
         """ Play the files """
-        subprocess.call(['mpc', 'clear'])
-        subprocess.call([
-            'mpc', 'add',
+        self.mpc.clear()
+        self.mpc.add(
             self.dirs.goto_dir(self.offs, False)[len(self.dirs.home_dir)+1:]
-            ])
-        subprocess.call(['mpc', 'play'])
+            )
+        self.mpc.play()
         self.playmode = True
         place_text(self.dirs.subdirectories_with_music[self.offs], 0)
         self.show_track()
@@ -130,17 +134,22 @@ class Player(object):
         """ Stop playing """
         self.playmode = False
         signal.setitimer(signal.ITIMER_REAL, 0, 0)
-        subprocess.call(['mpc', 'stop'])
+        self.mpc.stop()
 
     def prev(self):
         """ Previous track """
-        subprocess.call(['mpc', 'prev'])
+        self.mpc.previous()
         self.show_track()
 
     def next(self):
         """ Next track """
-        subprocess.call(['mpc', 'next'])
+        self.mpc.next()
         self.show_track()
+        
+    def exit(self):
+        """ Exit mpd client """
+        self.mpc.close()
+        self.mpc.disconnect()
 
     @staticmethod
     def inc_vol():
@@ -152,25 +161,23 @@ class Player(object):
         """ Decrease volume """
         subprocess.call(['amixer', '-c', '0', 'set', 'PCM', '1%-'])
 
-    @staticmethod
-    def seek(secs):
+    def seek(self, secs):
         """ Seek file """
-        subprocess.call(['mpc', 'seek', secs])
+        self.mpc.seekcur(secs)
 
-    @staticmethod
-    def pause():
+    def pause(self):
         """ Toggle state: play/pause """
-        subprocess.call(['mpc', 'toggle'])
+        self.mpc.pause()
 
-    @staticmethod
-    def show_track():
+    def show_track(self):
         """ Show playing track on LCD """
-        sout = subprocess.check_output(['mpc', 'status']).splitlines()[0]
-        sout = sout.split('-')[-1]
-        sout = sout.split('/')[-1]
-        if sout[0] == ' ':
-            sout = sout[1:]
-        place_text(sout, 1)
+        s = self.mpc.currentsong()
+        if s != {}:
+            place_text(s['artist'], 0)
+            place_text(s['title'], 1)
+        else:
+            place_text(' '*16, 0)
+            place_text('   -= END =-   ', 1)
 
 
 def display(strings, offset=0):
@@ -201,7 +208,7 @@ def place_text(strings, row):
 LCD = HD44780()
 BUTTONS = Keyboard()
 
-place_text('Player v 1.0', 0)
+place_text('Player v' + VERSION, 0)
 place_text('-= loading =-', 1)
 
 
@@ -249,7 +256,8 @@ while 1:
             if k == 'play':
                 PLAYER.pause()
         if k == 'pwr':
-            place_text('Player v 1.0', 0)
+            place_text('Player v' + VERSION, 0)
             place_text('-= shutdown =-', 1)
+            PLAYER.exit()
             GPIO.cleanup()
             pwrdn()
