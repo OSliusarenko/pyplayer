@@ -5,10 +5,7 @@ import signal
 import locale
 import subprocess
 import RPi.GPIO as GPIO
-import os
 import sys
-import math
-from time import sleep
 from HD44780 import HD44780
 from keyboard import keyboard
 
@@ -43,7 +40,6 @@ class ttree:
         self.curr_dir = start_dir
 
         for root, dirs, files in os.walk(self.home_dir, followlinks=True):
-            path = root.split('/')
             directory_has_music = False
             music_files = []
             files.sort()

@@ -1,6 +1,4 @@
 #####
-from time import sleep
-from time import time
 import RPi.GPIO as GPIO
 import signal
 import os
