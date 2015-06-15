@@ -212,7 +212,7 @@ place_text('Player v' + VERSION, 0)
 place_text('-= loading =-', 1)
 
 
-PLAYER = Player('/mnt/hd1/pi/Music')
+PLAYER = Player('/home/pi/Music')
 
 signal.signal(signal.SIGALRM, italarm_signal_handler)
 signal.signal(signal.SIGINT, interrupt_signal_handler)

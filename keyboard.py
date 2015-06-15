@@ -73,7 +73,7 @@ class Keyboard(object):
         os.kill(os.getpid(), signal.SIGUSR1)
 
     def rot_callback(self, channel):
-        """ ISR callback for rotary encoder """
+        """ ISR callback for rotary encoder 3-pins """
         if GPIO.input(self.rot_a) == GPIO.input(self.rot_b):
             self.rot += 1
         else:
@@ -90,11 +90,11 @@ class Keyboard(object):
             os.kill(os.getpid(), signal.SIGUSR1)
 
     def volp_callback(self, channel):
-        """ ISR callback for volume up """
+        """ ISR callback for volume up 4-pins rotary encoder"""
         self.queue.append('vol+')
         os.kill(os.getpid(), signal.SIGUSR1)
 
     def volm_callback(self, channel):
-        """ ISR callback for volume down """
+        """ ISR callback for volume down 4-pins rotary encoder"""
         self.queue.append('vol-')
         os.kill(os.getpid(), signal.SIGUSR1)
